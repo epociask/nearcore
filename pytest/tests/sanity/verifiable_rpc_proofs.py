@@ -1,9 +1,6 @@
 import logging
 import sys
 import pathlib
-import base58
-import binascii
-
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parents[2] / 'lib'))
 
@@ -63,56 +60,6 @@ def main():
     logging.info("Testing complete, terminating nodes....")
     for node in nodes:
         node.kill()
-
-        # block_entry = node.get_latest_block()
-    # block_metadata = node.get_block(block_entry.hash)["result"]
-
-    # logging.info(block_metadata)
-    # logging.info(bytearray(proof[0]))
-    # logging.info(base58.b58encode(binascii.hexlify(bytearray(proof[0]))).decode('ascii'))
-
-    # print(node.signer_key.account_id)
-    # print(node.signer_key.pk)
-
-    # print(node.signer_key.decoded_pk().hex())
-
-
-    # for byte_array in proof:
-    #     byte0 = byte_array[0]
-    #     if byte0 == LEAF_NODE:
-    #         print(byte_array)
-            
-    #         byte_array = byte_array[1:]
-    #         print(byte_array)
-    #         ## Read 32 bit key length value
-    #         key_len = int.from_bytes(byte_array[0 : 4], byteorder='little', signed=False)
-    #         byte_array = byte_array[4:]
-
-    #         print("Key length ", key_len)
-    #         print(byte_array)
-
-    #         key = int.from_bytes(byte_array[0 : key_len], byteorder='little', signed=False)
-
-    #         print(byte_array[0 : key_len])
-    #         byte_array = byte_array[key_len:]
-
-    #         value_len = int.from_bytes(byte_array[0 : 4], byteorder='little', signed=False)
-
-    #         byte_array = byte_array[4:]
-    #         print("Value length ", value_len)
-    #         print(byte_array)
-
-    #         value = int.from_bytes(byte_array[0 : value_len], byteorder='little', signed=False)
-    #         byte_array = byte_array[value_len:]
-    #         print(byte_array)
-    #         print(hex(key))
-    #         print(hex(value))
-
-
-        # if byte0 == BRANCH_WITH_VALUE_NODE:
-        #     print("branch node w/ value")
-
-        # print(node)
 
 
 if __name__ == "__main__":

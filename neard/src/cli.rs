@@ -16,18 +16,20 @@ use near_o11y::{
 };
 use near_ping::PingCommand;
 use near_primitives::hash::CryptoHash;
+use near_primitives::challenge::StateItem;
 use near_primitives::merkle::compute_root_from_path;
 use near_primitives::types::{Gas, NumSeats, NumShards};
 use near_state_parts::cli::StatePartsCommand;
 use near_state_viewer::StateViewerSubCommand;
 use near_store::db::RocksDB;
-use near_store::Mode;
+use near_store::{Mode, PartialStorage, Trie};
 use serde_json::Value;
 use std::fs::File;
 use std::io::BufReader;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::u8;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::Receiver;
 use tracing::{debug, error, info, warn};
@@ -98,6 +100,9 @@ impl NeardCmd {
 
             NeardSubCommand::RecompressStorage(cmd) => {
                 cmd.run(&home_dir);
+            }
+            NeardSubCommand::VerifyTriePath(cmd) => {
+                cmd.run();
             }
             NeardSubCommand::VerifyProof(cmd) => {
                 cmd.run();
@@ -215,6 +220,10 @@ pub(super) enum NeardSubCommand {
     /// Verify proofs
     #[clap(alias = "verify_proof")]
     VerifyProof(VerifyProofSubCommand),
+
+    /// Verify trie path
+    #[clap(alias = "verify_trie_path")]
+    VerifyTriePath(VerifyTrieProofSubCommand),
 
     /// Connects to a NEAR node and sends ping messages to the accounts it sends
     /// us after the handshake is completed, printing stats to stdout.
@@ -668,6 +677,89 @@ pub enum VerifyProofError {
     InvalidOutcomeRootProof,
     #[error("invalid block hash proof")]
     InvalidBlockHashProof,
+}
+
+#[derive(clap::Parser)]
+pub struct VerifyTrieProofSubCommand {
+    #[clap(long)]
+    account_key: String,
+    #[clap(long)]
+    state_hash: String,
+    #[clap(long)]
+    proof: String
+}
+
+impl VerifyTrieProofSubCommand {
+    pub fn run(self) {
+
+        let mut parsedProof: Vec<StateItem> = Vec::new();
+        let mut tempStr = "".to_string();
+        let mut tempNode: Vec<u8> = Vec::new();
+
+
+
+        // when trimmed, proof is expected to be of form [[e0,e1,e2,e3],[e4,e5,e6,e7]]
+        
+        // [e0,e1,e2,e3],[e4,e5,e6,e7]
+        let asChars: Vec<char> = self.proof.trim().chars().collect();
+
+        let i: i32 = -1;
+        let sequnceLen: i32 = asChars.len() as i32;
+
+        for ch in asChars {
+            i += 1;
+
+            // we ignore the first '[' and last ']' characters
+            if i == 0 || i == sequnceLen - 1 {
+                continue;
+            };
+
+            if ch == '[' {
+                continue;
+            };
+                
+            if ch == ']' { // end of byte encoded Trie node
+                tempNode.push(tempStr.parse::<u8>().unwrap());
+
+                // flush buffer
+                tempStr = "".to_string();
+
+                // push and flush tempNode
+
+                let arr = match tempNode.as_slice().try_into() {
+                    Ok(val) => val,
+                    Err(e) => panic!(e)
+                };
+
+                let asU8: Arc<[u8]> = Arc::new(arr);
+                parsedProof.push(asU8);
+
+                // Flush tempNode
+                tempNode = Vec::new();
+
+            } else if ch == ',' {
+                tempNode.push(tempStr.parse::<u8>().unwrap());
+
+                // flush buffer
+                tempStr = "".to_string();
+            
+
+            } else {
+                // write char
+                tempStr = format!("{}{}", tempStr, ch.to_string());
+            }
+        }
+
+        println!("{:?}", parsedProof);
+
+        // let mut items: Vec<StateItem> = Vec::new();
+        // self.proof.iter().for_each(|entry| {
+        //     items.append(entry.into())
+        // });
+
+        // let trie = Trie::from_recorded_storage(PartialStorage { nodes: self.proof }, *self.state_hash);
+    }
+
 }
 
 #[derive(clap::Parser)]
